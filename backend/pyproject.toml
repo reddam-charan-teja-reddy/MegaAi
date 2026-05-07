@@ -3,7 +3,14 @@ name = "megaai"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
+    "asyncpg>=0.31.0",
     "fastapi[standard]>=0.136.1",
+    "mediapipe>=0.10.35",
+    "numpy>=2.4.4",
+    "pillow>=12.2.0",
+    "pydantic-settings>=2.14.0",
+    "sqlalchemy>=2.0.49",
+    "websockets>=16.0",
 ]
