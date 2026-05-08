@@ -13,6 +13,39 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d megaai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mega_ai_backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/megaai
+      - WS_HOST=0.0.0.0
+      - WS_PORT=8000
+      - MODEL_PATH=/app/app/cv/face_detection_short_range.tflite
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mega_ai_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
 
 volumes:
   postgres_data:
