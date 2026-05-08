@@ -1,20 +1,31 @@
 import io
+import os
 from PIL import Image, ImageDraw
 import numpy as np
+from app.core.config import settings
 
 class FaceDetectionPipeline:
     def __init__(self):
         self.detector = None
+        self._mp = None
 
     def setup(self):
         """Initialize the ML model explicitly. Called during app startup."""
+        import mediapipe as mp
         from mediapipe.tasks import python as mp_python
         from mediapipe.tasks.python import vision
         
         # In a real environment, the Dockerfile ensures this file exists.
-        base_options = mp_python.BaseOptions(model_asset_path='face_detection_short_range.tflite')
+        # Compute absolute path to handle varied start directories
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = settings.MODEL_PATH
+        if not os.path.isabs(model_path):
+            model_path = os.path.join(current_dir, model_path)
+        
+        base_options = mp_python.BaseOptions(model_asset_path=model_path)
         options = vision.FaceDetectorOptions(base_options=base_options)
         self.detector = vision.FaceDetector.create_from_options(options)
+        self._mp = mp
 
     def process_frame(self, frame_bytes: bytes) -> tuple[bytes, tuple[float, float, float, float] | None]:
         """
@@ -26,16 +37,17 @@ class FaceDetectionPipeline:
 
         # 1. Decode: Convert bytes to a Pillow Image object
         try:
-            image = Image.open(io.BytesFileIO(frame_bytes) if hasattr(io, 'BytesFileIO') else io.BytesIO(frame_bytes)).convert("RGB")
+            image = Image.open(io.BytesIO(frame_bytes)).convert("RGB")
         except Exception as e:
             print("Failed to decode image bytes:", e)
             return frame_bytes, None
 
         width, height = image.size
 
-        # 2. Detect: Convert to NumPy array for MediaPipe
+        # 2. Detect: Convert to NumPy array for MediaPipe Tasks API
         image_np = np.array(image)
-        results = self.detector.process(image_np)
+        mp_image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=image_np)
+        results = self.detector.detect(mp_image)
 
         roi_coords = None
 

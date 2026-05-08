@@ -1,6 +1,7 @@
 import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.future import select
+from app.core.config import settings
 from app.core.state import global_state
 from app.db.buffer import roi_buffer
 from app.db.database import AsyncSessionLocal
@@ -23,7 +24,12 @@ async def ingest_stream(websocket: WebSocket, session_id: str):
         nonlocal latest_frame, keep_running
         try:
             while keep_running:
-                latest_frame = await websocket.receive_bytes()
+                frame = await websocket.receive_bytes()
+                if len(frame) > settings.MAX_FRAME_BYTES:
+                    await websocket.close(code=1009)
+                    keep_running = False
+                    return
+                latest_frame = frame
         except WebSocketDisconnect:
             keep_running = False
 

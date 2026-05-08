@@ -15,13 +15,10 @@ async def lifespan(app: FastAPI):
     # Setup background operations: Database initialization + ML Loading + Background flush worker
     await init_db()
     
-    try:
-        # Load ML assets into memory at boot time, NOT import time.
-        pipeline.setup()
-    except FileNotFoundError:
-        print("CRITICAL: face_detection_short_range.tflite is missing. Ensure the Dockerfile downloaded the asset.")
-        # We don't crash here explicitly so tests can run cleanly without the model
-        pass
+    # Load ML assets into memory at boot time.
+    # In a standard containerized setup, if the model is missing, the application
+    # should explicitly Fail Fast at boot, as the Docker image is considered broken.
+    pipeline.setup()
 
     worker_task = asyncio.create_task(roi_buffer.start_background_worker())
     
@@ -38,10 +35,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
+cors_origins = ["*"]
+if settings.CORS_ALLOW_ORIGINS != "*":
+    cors_origins = [origin.strip() for origin in settings.CORS_ALLOW_ORIGINS.split(",") if origin.strip()]
+
 # Restrict in production via env
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

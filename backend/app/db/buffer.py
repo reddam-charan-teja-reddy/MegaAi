@@ -15,7 +15,7 @@ class ROIBufferManager:
         self.buffer: List[Dict] = []
         self.lock = asyncio.Lock()
         self.last_flush_time = time.time()
-        self.last_recorded_roi: Dict[str, Dict] = {} # session_id -> {timestamp, x, y}
+        self.last_recorded_roi: Dict[str, Dict] = {} # session_id -> {timestamp, coords}
 
     async def add_roi(self, session_id: str, roi: tuple):
         """
@@ -40,16 +40,22 @@ class ROIBufferManager:
                 should_record = True
             else:
                 # shift threshold means the position changed significantly on the normalized scale
-                x_shift = abs(x_min - last_data["x_min"])
-                y_shift = abs(y_min - last_data["y_min"])
-                if x_shift > settings.ROI_SHIFT_THRESHOLD or y_shift > settings.ROI_SHIFT_THRESHOLD:
+                shifts = [
+                    abs(x_min - last_data["x_min"]),
+                    abs(y_min - last_data["y_min"]),
+                    abs(x_max - last_data["x_max"]),
+                    abs(y_max - last_data["y_max"]),
+                ]
+                if any(shift > settings.ROI_SHIFT_THRESHOLD for shift in shifts):
                     should_record = True
 
         if should_record:
             self.last_recorded_roi[session_id] = {
-                "time": current_time, 
-                "x_min": x_min, 
-                "y_min": y_min
+                "time": current_time,
+                "x_min": x_min,
+                "y_min": y_min,
+                "x_max": x_max,
+                "y_max": y_max,
             }
             
             record_dt = datetime.fromtimestamp(current_time)
