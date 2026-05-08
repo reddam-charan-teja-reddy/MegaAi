@@ -20,27 +20,16 @@ body, html {
   min-width: 400px;
 }
 
-.consumer {
+.consumer-section {
   flex: 1;
   min-width: 400px;
   background-color: #1e1e1e;
   border-radius: 8px;
   padding: 1.5rem;
   border: 1px dashed #555;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  min-height: 480px;
 }
 
-.consumer h1 {
+.viewer-video h2,
+.viewer-roi-data h2 {
   margin-top: 0;
-  font-size: 1.5rem;
-  color: #ccc;
-}
-
-.consumer p {
-  color: #888;
 }

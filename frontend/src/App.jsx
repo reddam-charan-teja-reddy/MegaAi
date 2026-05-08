@@ -1,20 +1,25 @@
 import { useState } from 'react'
 import './App.css'
 import Feeder from './components/feeder/Feeder'
+import Viewer from './components/Viewer'
 
 function App() {
+  const [sessionId] = useState(`session_${Math.floor(Math.random() * 10000)}`);
 
   return (
-    <div className="app-container">
-      {/* Feeder component */}
-      <div className="feeder-section">
-        <Feeder />
-      </div>
+    <div className="app-container" style={{ padding: '2rem' }}>
+      <h1>Mega AI Face Stream</h1>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+        <div className="feeder-section">
+          <Feeder sessionId={sessionId} />
+        </div>
 
-      {/* Consumer component (Placeholder for now) */}
-      <div className="consumer">
-        <h1>Consumer Component / Viewer</h1>
-        <p>This is where the processed feed and ROI boxes will be displayed.</p>
+        <hr style={{ width: '100%', borderColor: '#eee' }} />
+
+        <div className="consumer-section">
+          <Viewer sessionId={sessionId} />
+        </div>
       </div>
     </div>
   )

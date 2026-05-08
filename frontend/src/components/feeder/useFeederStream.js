@@ -8,7 +8,7 @@ export const WsStatus = {
   ERROR: 'Error',
 };
 
-export function useFeederStream() {
+export function useFeederStream(customWsUrl = null) {
   const [stream, setStream] = useState(null);
   const [wsStatus, setWsStatus] = useState(WsStatus.DISCONNECTED);
   const [devices, setDevices] = useState([]);
@@ -92,9 +92,16 @@ export function useFeederStream() {
       return;
     }
 
+    const urlToUse = wsUrl || customWsUrl;
+    if (!urlToUse) {
+      setError('No WebSocket URL configured.');
+      setWsStatus(WsStatus.ERROR);
+      return;
+    }
+
     // 1. Initialize WebSocket
     setWsStatus(WsStatus.CONNECTING);
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(urlToUse);
     ws.binaryType = 'blob'; 
     wsRef.current = ws;
 
@@ -172,7 +179,7 @@ export function useFeederStream() {
       }
     }, captureIntervalTime);
 
-  }, [selectedDeviceId, targetFps]); // removed stream, wsStatus, stopStream to prevent looping
+  }, [selectedDeviceId, targetFps, customWsUrl]); // removed stream, wsStatus, stopStream to prevent looping
 
   // Cleanup on unmount
   useEffect(() => {

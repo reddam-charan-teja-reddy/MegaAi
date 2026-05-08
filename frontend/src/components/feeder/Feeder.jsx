@@ -2,11 +2,16 @@ import React from 'react';
 import { useFeederStream, WsStatus } from './useFeederStream';
 import './Feeder.css';
 
-const WS_BACKEND_URL = import.meta.env.VITE_WS_BACKEND_URL || 'ws://localhost:8000/ws/feed';
 const CAMERA_WIDTH = parseInt(import.meta.env.VITE_CAMERA_WIDTH || '640', 10);
 const CAMERA_HEIGHT = parseInt(import.meta.env.VITE_CAMERA_HEIGHT || '480', 10);
 
-const Feeder = () => {
+const Feeder = ({ sessionId = "demo_session" }) => {
+  const defaultWsBase = import.meta.env.VITE_WS_BACKEND_URL
+    || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`;
+
+  // Pass the correct ingest URL with the given session ID
+  const wsUrl = `${defaultWsBase}/ws/stream/ingest/${sessionId}`;
+
   const {
     wsStatus,
     devices,
@@ -19,7 +24,7 @@ const Feeder = () => {
     setTargetFps,
     startStream,
     stopStream
-  } = useFeederStream();
+  } = useFeederStream(wsUrl);
 
   const isStreaming = wsStatus === WsStatus.CONNECTED;
 
@@ -27,7 +32,7 @@ const Feeder = () => {
     if (isStreaming || wsStatus === WsStatus.CONNECTING) {
       stopStream();
     } else {
-      startStream(WS_BACKEND_URL, { width: CAMERA_WIDTH, height: CAMERA_HEIGHT });
+      startStream(wsUrl, { width: CAMERA_WIDTH, height: CAMERA_HEIGHT });
     }
   };
 
