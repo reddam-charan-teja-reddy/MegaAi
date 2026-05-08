@@ -8,11 +8,21 @@ from app.core.config import settings
 from app.db.database import init_db
 from app.db.buffer import roi_buffer
 from app.api.endpoints import router
+from app.cv.pipeline import pipeline
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Setup background operations: Database initialization + Background flush worker
+    # Setup background operations: Database initialization + ML Loading + Background flush worker
     await init_db()
+    
+    try:
+        # Load ML assets into memory at boot time, NOT import time.
+        pipeline.setup()
+    except FileNotFoundError:
+        print("CRITICAL: face_detection_short_range.tflite is missing. Ensure the Dockerfile downloaded the asset.")
+        # We don't crash here explicitly so tests can run cleanly without the model
+        pass
+
     worker_task = asyncio.create_task(roi_buffer.start_background_worker())
     
     yield

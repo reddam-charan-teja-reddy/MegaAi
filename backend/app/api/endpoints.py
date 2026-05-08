@@ -15,45 +15,57 @@ async def ingest_stream(websocket: WebSocket, session_id: str):
     await websocket.accept()
     loop = asyncio.get_running_loop()
     
-    # Backpressure Drop Policy marker
-    is_processing = False 
-    
-    try:
-        while True:
-            data = await websocket.receive_bytes()
-            
-            # The Drop Policy: If threadpool is busy, ignore incoming frame
-            if is_processing:
-                continue
-                
-            is_processing = True
-            
-            def process_and_update():
-                try:
-                    # CPU-heavy task via ThreadPool
-                    processed_bytes, roi = pipeline.process_frame(data)
-                    # Update the Global State memory dictionary thread-safely
-                    global_state.update_frame(session_id, processed_bytes, roi)
-                    return roi
-                except Exception as e:
-                    print(f"Pipeline error: {e}")
-                    return None
+    # Backpressure Drop Policy: Separate receiver and processor tasks
+    latest_frame = None
+    keep_running = True
 
-            try:
-                # Offload to Thread Pool
-                roi = await loop.run_in_executor(None, process_and_update)
+    async def receive_frames():
+        nonlocal latest_frame, keep_running
+        try:
+            while keep_running:
+                latest_frame = await websocket.receive_bytes()
+        except WebSocketDisconnect:
+            keep_running = False
+
+    async def process_frames():
+        nonlocal latest_frame, keep_running
+        try:
+            while keep_running:
+                if latest_frame is None:
+                    await asyncio.sleep(0.01)
+                    continue
                 
-                # Async write to DB smart buffer
+                frame_to_process = latest_frame
+                latest_frame = None  # Consume frame, dropping any older ones that backed up
+                
+                def process_and_update(data):
+                    try:
+                        processed_bytes, roi = pipeline.process_frame(data)
+                        global_state.update_frame(session_id, processed_bytes, roi)
+                        return roi
+                    except Exception as e:
+                        print(f"Pipeline error: {e}")
+                        return None
+
+                roi = await loop.run_in_executor(None, process_and_update, frame_to_process)
+                
                 if roi:
                     await roi_buffer.add_roi(session_id, roi)
-            finally:
-                is_processing = False
 
-            await websocket.send_json({"status": "received"})
-            
-    except WebSocketDisconnect:
-        global_state.clean_session(session_id)
-        # print("Ingest socket disconnected")
+                try:
+                    await websocket.send_json({"status": "received"})
+                except Exception:
+                    pass
+        except Exception as e:
+            print("Process task error:", e)
+
+    receiver_task = asyncio.create_task(receive_frames())
+    processor_task = asyncio.create_task(process_frames())
+    
+    # Wait until socket disconnects
+    await asyncio.wait([receiver_task, processor_task], return_when=asyncio.FIRST_COMPLETED)
+    keep_running = False
+    global_state.clean_session(session_id)
 
 @router.websocket("/ws/stream/serve/{session_id}")
 async def serve_stream(websocket: WebSocket, session_id: str):

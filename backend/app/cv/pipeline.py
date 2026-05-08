@@ -1,23 +1,29 @@
 import io
 from PIL import Image, ImageDraw
 import numpy as np
-import mediapipe as mp
-
-# Initialize MediaPipe Face Detection
-mp_face_detection = mp.solutions.face_detection
 
 class FaceDetectionPipeline:
     def __init__(self):
-        self.detector = mp_face_detection.FaceDetection(
-            model_selection=0, # 0 for short-range faces (webcam)
-            min_detection_confidence=0.5
-        )
+        self.detector = None
+
+    def setup(self):
+        """Initialize the ML model explicitly. Called during app startup."""
+        from mediapipe.tasks import python as mp_python
+        from mediapipe.tasks.python import vision
+        
+        # In a real environment, the Dockerfile ensures this file exists.
+        base_options = mp_python.BaseOptions(model_asset_path='face_detection_short_range.tflite')
+        options = vision.FaceDetectorOptions(base_options=base_options)
+        self.detector = vision.FaceDetector.create_from_options(options)
 
     def process_frame(self, frame_bytes: bytes) -> tuple[bytes, tuple[float, float, float, float] | None]:
         """
         CPU-bound function run inside ThreadPool.
         Returns: (encoded JPEG bytes, ROI Tuple or None)
         """
+        if not self.detector:
+            raise RuntimeError("Pipeline not initialized. Call setup() first.")
+
         # 1. Decode: Convert bytes to a Pillow Image object
         try:
             image = Image.open(io.BytesFileIO(frame_bytes) if hasattr(io, 'BytesFileIO') else io.BytesIO(frame_bytes)).convert("RGB")

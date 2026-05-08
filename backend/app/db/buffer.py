@@ -1,13 +1,15 @@
 import asyncio
 import time
+from datetime import datetime
 from typing import List, Dict, Optional
 from app.db.database import AsyncSessionLocal
 from app.db.models import ROIHistory
+from app.core.config import settings
 
 class ROIBufferManager:
     """
     Background buffering system that temporarily holds ROI data.
-    Flushes rules: 50 records or background tick every few seconds.
+    Flushes rules: BUFFER_MAX_SIZE records or background tick every BUFFER_FLUSH_INTERVAL seconds.
     """
     def __init__(self):
         self.buffer: List[Dict] = []
@@ -17,7 +19,7 @@ class ROIBufferManager:
 
     async def add_roi(self, session_id: str, roi: tuple):
         """
-        Evaluates 1-Second / 5% Shift Rules. Appends to buffer if constraints met.
+        Evaluates Time / Shift Rules. Appends to buffer if constraints met.
         """
         if not roi:
             return
@@ -33,14 +35,14 @@ class ROIBufferManager:
         else:
             time_diff = current_time - last_data["time"]
             
-            # The Flush Logic (1-Second / 5% Rule)
-            if time_diff >= 1.0:
+            # The Flush Logic (Time / Shift Rule)
+            if time_diff >= settings.ROI_TIME_THRESHOLD:
                 should_record = True
             else:
-                # 5% shift means the position changed by 0.05 on the normalized scale
+                # shift threshold means the position changed significantly on the normalized scale
                 x_shift = abs(x_min - last_data["x_min"])
                 y_shift = abs(y_min - last_data["y_min"])
-                if x_shift > 0.05 or y_shift > 0.05:
+                if x_shift > settings.ROI_SHIFT_THRESHOLD or y_shift > settings.ROI_SHIFT_THRESHOLD:
                     should_record = True
 
         if should_record:
@@ -50,6 +52,8 @@ class ROIBufferManager:
                 "y_min": y_min
             }
             
+            record_dt = datetime.fromtimestamp(current_time)
+            
             async with self.lock:
                 self.buffer.append({
                     "session_id": session_id,
@@ -57,10 +61,11 @@ class ROIBufferManager:
                     "y_min": y_min,
                     "x_max": x_max,
                     "y_max": y_max,
+                    "timestamp": record_dt
                 })
                 
-                # Immediate flush if buffer is hit size 50
-                if len(self.buffer) >= 50:
+                # Immediate flush if buffer hits max size
+                if len(self.buffer) >= settings.BUFFER_MAX_SIZE:
                     asyncio.create_task(self.flush())
 
     async def flush(self):
@@ -89,9 +94,9 @@ class ROIBufferManager:
         """Run continuously to ensure buffer is drained when traffic slows."""
         try:
             while True:
-                await asyncio.sleep(5)  # flush every 5 seconds if not triggered by limit
+                await asyncio.sleep(settings.BUFFER_FLUSH_INTERVAL) 
                 current_time = time.time()
-                if current_time - self.last_flush_time >= 5.0:
+                if current_time - self.last_flush_time >= settings.BUFFER_FLUSH_INTERVAL:
                     await self.flush()
         except asyncio.CancelledError:
             # flush one last time on shutdown
