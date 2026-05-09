@@ -1,7 +1,12 @@
 # Stage 1: Build the Vite React App
-FROM oven/bun:1.1.10 AS build
+FROM node:22.12-alpine AS build
 
 WORKDIR /app
+
+# Install bun (used for dependency install to match local workflow)
+RUN apk add --no-cache curl bash \
+    && curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 # Install dependencies using bun
 COPY package.json bun.lock* ./
@@ -16,7 +21,7 @@ ARG VITE_WS_BACKEND_URL=ws://localhost:8000
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_WS_BACKEND_URL=$VITE_WS_BACKEND_URL
 
-RUN bun run build
+RUN node node_modules/vite/bin/vite.js build
 
 # Stage 2: Serve via Nginx (Industry standard for containerized static frontends)
 FROM nginx:alpine
