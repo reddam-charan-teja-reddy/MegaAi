@@ -21,6 +21,8 @@ Real-time face detection video streaming system using FastAPI, MediaPipe, Postgr
 2. Backend detects face, draws ROI, updates in-memory state, buffers ROI for DB.
 3. Viewer receives frames from `WS /ws/stream/serve/{session_id}` and polls `GET /api/v1/roi/history/{session_id}`.
 
+Note: The consumer stream is blank until the Feeder starts streaming with the same `session_id`.
+
 **Architecture Diagram**
 
 - [docs/architecture.png](docs/architecture.png)
@@ -30,6 +32,8 @@ Real-time face detection video streaming system using FastAPI, MediaPipe, Postgr
 - `WS /ws/stream/ingest/{session_id}`: Ingests JPEG frames
 - `WS /ws/stream/serve/{session_id}`: Streams processed JPEG frames
 - `GET /api/v1/roi/history/{session_id}`: Returns ROI history as JSON
+
+ROI history is served over REST (correct for queryable history). Live frames are served over WebSocket (low latency).
 
 ## Configuration
 

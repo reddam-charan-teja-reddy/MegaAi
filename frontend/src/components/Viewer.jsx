@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 export default function Viewer({ sessionId }) {
   const [history, setHistory] = useState([]);
   const [historyError, setHistoryError] = useState(null);
+  const [streamError, setStreamError] = useState(null);
+  const [hasFrame, setHasFrame] = useState(false);
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
   const defaultHttpBase = import.meta.env.VITE_API_BASE_URL
@@ -41,17 +43,35 @@ export default function Viewer({ sessionId }) {
   // 2. Consume real-time video stream over WebSockets
   useEffect(() => {
     const ws = new WebSocket(`${defaultWsBase}/ws/stream/serve/${sessionId}`);
+    ws.binaryType = 'arraybuffer';
     wsRef.current = ws;
 
     ws.onopen = () => {
       // Initiate request cycle for first frame
+      setStreamError(null);
       ws.send("next");
+    };
+
+    ws.onerror = () => {
+      setStreamError('Stream connection error. Check backend logs.');
+    };
+
+    ws.onclose = () => {
+      setStreamError('Stream disconnected. Is the backend running?');
     };
 
     ws.onmessage = async (event) => {
       // The backend serves jpeg bytes natively. Draw them into the canvas.
-      const blob = event.data;
-      if (blob instanceof Blob) {
+      const payload = event.data;
+      let blob = null;
+
+      if (payload instanceof Blob) {
+        blob = payload;
+      } else if (payload instanceof ArrayBuffer) {
+        blob = new Blob([payload], { type: 'image/jpeg' });
+      }
+
+      if (blob) {
         const bitmap = await createImageBitmap(blob);
         const canvas = canvasRef.current;
         if (canvas) {
@@ -66,6 +86,9 @@ export default function Viewer({ sessionId }) {
           ctx.drawImage(bitmap, 0, 0);
         }
         bitmap.close();
+        if (!hasFrame) {
+          setHasFrame(true);
+        }
       }
       
       // Request next frame instantly (Consumer-side backpressure)
@@ -85,6 +108,12 @@ export default function Viewer({ sessionId }) {
     <div className="viewer-layout">
       <div className="viewer-video">
         <h2>Consumer Stream</h2>
+        {!hasFrame && !streamError && (
+          <p style={{ color: '#9bbcff', marginTop: 0 }}>Waiting for stream...</p>
+        )}
+        {streamError && (
+          <p style={{ color: '#ff9b9b', marginTop: 0 }}>{streamError}</p>
+        )}
         <canvas
           ref={canvasRef}
           className="viewer-canvas"

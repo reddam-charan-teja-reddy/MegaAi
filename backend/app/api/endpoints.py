@@ -83,14 +83,15 @@ async def serve_stream(websocket: WebSocket, session_id: str):
             # A common strategy is to wait for the client to say "next", 
             # serving as automatic consumer-side backpressure.
             await websocket.receive_text()
-            
-            frame_bytes, roi = global_state.get_latest_frame(session_id)
-            if not frame_bytes:
+
+            # Wait until a frame is available so the first "next" doesn't deadlock.
+            while True:
+                frame_bytes, roi = global_state.get_latest_frame(session_id)
+                if frame_bytes:
+                    # Sending Option B: Send the binary frame
+                    await websocket.send_bytes(frame_bytes)
+                    break
                 await asyncio.sleep(0.01)
-                continue
-            
-            # Sending Option B: Send the binary frame
-            await websocket.send_bytes(frame_bytes)
             
             # (Optional) We could send a trailing text frame with ROI, 
             # however, since the image ALREADY has the Pillow bounding box drawn 
