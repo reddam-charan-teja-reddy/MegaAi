@@ -21,6 +21,10 @@ Real-time face detection video streaming system using FastAPI, MediaPipe, Postgr
 2. Backend detects face, draws ROI, updates in-memory state, buffers ROI for DB.
 3. Viewer receives frames from `WS /ws/stream/serve/{session_id}` and polls `GET /api/v1/roi/history/{session_id}`.
 
+**Architecture Diagram**
+
+- [docs/architecture.png](docs/architecture.png)
+
 ## API Endpoints
 
 - `WS /ws/stream/ingest/{session_id}`: Ingests JPEG frames
@@ -54,6 +58,13 @@ docker compose up -d
 Open the UI:
 
 - http://localhost:3000
+
+If the backend fails to start with `libGLESv2.so.2` missing, rebuild the backend image:
+
+```bash
+docker compose build backend --no-cache
+docker compose up -d
+```
 
 ## Local Development
 
@@ -96,11 +107,21 @@ cd frontend
 bun run test
 ```
 
+## Submission Notes
+
+- The architecture diagram is provided in [docs/architecture.png](docs/architecture.png).
+- The MediaPipe model is baked into the backend container at build time.
+
 ## Build & Deploy (Overview)
 
 - Backend image builds with `uv sync --frozen --no-dev`, then downloads the MediaPipe model at build time.
 - Frontend image builds with `bun` and is served by Nginx.
 - `docker compose up -d` starts PostgreSQL, the API, and the UI together on a shared network.
+
+## Troubleshooting
+
+- **Consumer stream is empty**: Ensure the Feeder is running and sending frames with the same `session_id`.
+- **REST ROI shows errors**: Ensure backend is running at `http://localhost:8000`.
 
 ## AI Usage Disclosure
 

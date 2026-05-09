@@ -31,3 +31,12 @@ curl -L -o app/cv/face_detection_short_range.tflite \
 ```bash
 uv run pytest
 ```
+
+### Troubleshooting
+
+- If you see `libGLESv2.so.2` missing inside Docker, rebuild:
+
+```bash
+docker compose build backend --no-cache
+docker compose up -d
+```

@@ -7,6 +7,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
+    libegl1 \
+    libgles2 \
+    libglvnd0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -29,6 +32,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
+    libegl1 \
+    libgles2 \
+    libglvnd0 \
     wget \
     && rm -rf /var/lib/apt/lists/*
 

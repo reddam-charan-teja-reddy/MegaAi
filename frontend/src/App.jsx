@@ -7,19 +7,17 @@ function App() {
   const [sessionId] = useState(`session_${Math.floor(Math.random() * 10000)}`);
 
   return (
-    <div className="app-container" style={{ padding: '2rem' }}>
-      <h1>Mega AI Face Stream</h1>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-        <div className="feeder-section">
+    <div className="app-container">
+      <h1 className="app-title">Mega AI Face Stream</h1>
+
+      <div className="app-grid">
+        <section className="feeder-section">
           <Feeder sessionId={sessionId} />
-        </div>
+        </section>
 
-        <hr style={{ width: '100%', borderColor: '#eee' }} />
-
-        <div className="consumer-section">
+        <section className="consumer-section">
           <Viewer sessionId={sessionId} />
-        </div>
+        </section>
       </div>
     </div>
   )

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 export default function Viewer({ sessionId }) {
   const [history, setHistory] = useState([]);
+  const [historyError, setHistoryError] = useState(null);
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
   const defaultHttpBase = import.meta.env.VITE_API_BASE_URL
@@ -16,9 +17,11 @@ export default function Viewer({ sessionId }) {
       if (response.ok) {
         const data = await response.json();
         setHistory(data);
+        setHistoryError(null);
       }
     } catch (e) {
       if (e.name !== 'AbortError') {
+        setHistoryError('Backend not reachable. Is it running on port 8000?');
         console.error('Failed to fetch ROI history', e);
       }
     }
@@ -79,25 +82,28 @@ export default function Viewer({ sessionId }) {
   }, [sessionId, defaultWsBase]);
 
   return (
-    <div style={{ display: 'flex', gap: '2rem' }}>
+    <div className="viewer-layout">
       <div className="viewer-video">
         <h2>Consumer Stream</h2>
-        <canvas 
-          ref={canvasRef} 
-          style={{ width: '480px', height: '360px', backgroundColor: '#111' }} 
+        <canvas
+          ref={canvasRef}
+          className="viewer-canvas"
         />
       </div>
-      
+
       <div className="viewer-roi-data">
         <h2>ROI History (REST API)</h2>
-        <div style={{ maxHeight: '360px', overflowY: 'auto', border: '1px solid #ccc', padding: '1rem', width: '300px' }}>
+        {historyError && (
+          <p style={{ color: '#ff9b9b', marginTop: 0 }}>{historyError}</p>
+        )}
+        <div className="viewer-history">
           {history.length === 0 ? (
             <p>No bounding boxes recorded yet.</p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0 }}>
               {history.map((record, idx) => (
                 <li key={idx} style={{ marginBottom: '10px', fontSize: '12px' }}>
-                  <strong>{new Date(record.timestamp).toLocaleTimeString()}:</strong><br/>
+                  <strong>{new Date(record.timestamp).toLocaleTimeString()}:</strong><br />
                   ({record.x_min.toFixed(2)}, {record.y_min.toFixed(2)}) to ({record.x_max.toFixed(2)}, {record.y_max.toFixed(2)})
                 </li>
               ))}
