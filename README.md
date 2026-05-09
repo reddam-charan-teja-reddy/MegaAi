@@ -25,7 +25,7 @@ Note: The consumer stream is blank until the Feeder starts streaming with the sa
 
 **Architecture Diagram**
 
-- [docs/architecture.png](docs/architecture.png)
+- [docs/architecture.svg](docs/architecture.svg)
 
 ## API Endpoints
 
@@ -113,7 +113,7 @@ bun run test
 
 ## Submission Notes
 
-- The architecture diagram is provided in [docs/architecture.png](docs/architecture.png).
+- The architecture diagram is provided in [docs/architecture.svg](docs/architecture.svg).
 - The MediaPipe model is baked into the backend container at build time.
 
 ## Build & Deploy (Overview)
