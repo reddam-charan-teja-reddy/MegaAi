@@ -13,24 +13,27 @@ from app.cv.pipeline import pipeline
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Setup background operations: Database initialization + ML Loading + Background flush worker
-    await init_db()
-    
-    # Load ML assets into memory at boot time.
-    # In a standard containerized setup, if the model is missing, the application
-    # should explicitly Fail Fast at boot, as the Docker image is considered broken.
-    pipeline.setup()
+    worker_task = None
+    if not settings.TESTING:
+        await init_db()
+        
+        # Load ML assets into memory at boot time.
+        # In a standard containerized setup, if the model is missing, the application
+        # should explicitly Fail Fast at boot, as the Docker image is considered broken.
+        pipeline.setup()
 
-    worker_task = asyncio.create_task(roi_buffer.start_background_worker())
+        worker_task = asyncio.create_task(roi_buffer.start_background_worker())
     
     yield
     
     # Graceful Shutdown phase
     print("Initiating graceful shutdown...")
-    worker_task.cancel()
-    try:
-        await worker_task
-    except asyncio.CancelledError:
-        pass
+    if worker_task:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
     print("Shutdown complete. All ROIs flushed.")
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)

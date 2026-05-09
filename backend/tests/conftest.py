@@ -1,8 +1,11 @@
+import os
 import urllib.request
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+os.environ.setdefault("TESTING", "true")
 
 from app.core.config import settings
 

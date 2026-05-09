@@ -22,6 +22,9 @@ class FaceDetectionPipeline:
         if not os.path.isabs(model_path):
             model_path = os.path.join(current_dir, model_path)
         
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found: {model_path}")
+
         base_options = mp_python.BaseOptions(model_asset_path=model_path)
         options = vision.FaceDetectorOptions(base_options=base_options)
         self.detector = vision.FaceDetector.create_from_options(options)
@@ -50,17 +53,26 @@ class FaceDetectionPipeline:
         results = self.detector.detect(mp_image)
 
         roi_coords = None
+        detections = getattr(results, "detections", None)
 
-        if results.detections:
+        if detections:
             # Assume only one face as per requirements
-            detection = results.detections[0]
-            bbox = detection.location_data.relative_bounding_box
-            
-            # 3. Extract: Get minimal axis-aligned bounding box coordinates (Normalized)
-            x_min = max(0.0, bbox.xmin)
-            y_min = max(0.0, bbox.ymin)
-            x_max = min(1.0, bbox.xmin + bbox.width)
-            y_max = min(1.0, bbox.ymin + bbox.height)
+            detection = detections[0]
+
+            if hasattr(detection, "bounding_box"):
+                bbox = detection.bounding_box
+                x_min = max(0.0, bbox.origin_x / width)
+                y_min = max(0.0, bbox.origin_y / height)
+                x_max = min(1.0, (bbox.origin_x + bbox.width) / width)
+                y_max = min(1.0, (bbox.origin_y + bbox.height) / height)
+            else:
+                # Fallback for older detection object shapes
+                bbox = detection.location_data.relative_bounding_box
+                x_min = max(0.0, bbox.xmin)
+                y_min = max(0.0, bbox.ymin)
+                x_max = min(1.0, bbox.xmin + bbox.width)
+                y_max = min(1.0, bbox.ymin + bbox.height)
+
             roi_coords = (float(x_min), float(y_min), float(x_max), float(y_max))
 
             # 4. Draw: Use Pillow's ImageDraw purely, bypassing OpenCV completely

@@ -20,9 +20,9 @@ def test_websocket_ingest_updates_state_and_buffer(client):
             data = websocket.receive_json()
             assert data["status"] == "received"
 
-        frame, saved_roi = global_state.get_latest_frame(session_id)
-        assert frame == processed_bytes
-        assert saved_roi == roi
+            frame, saved_roi = global_state.get_latest_frame(session_id)
+            assert frame == processed_bytes
+            assert saved_roi == roi
         mock_process.assert_called_once()
         mock_add_roi.assert_awaited_once_with(session_id, roi)
 
@@ -52,13 +52,24 @@ def test_rest_history_endpoint_returns_rows(client):
         y_max=0.4,
     )
 
-    with patch("app.api.endpoints.AsyncSessionLocal") as mock_db:
-        mock_db.return_value.__aenter__.return_value.execute = AsyncMock(
-            return_value=AsyncMock(
-                scalars=lambda: AsyncMock(all=lambda: [fake_row])
-            )
-        )
+    class FakeResult:
+        def scalars(self):
+            return self
 
+        def all(self):
+            return [fake_row]
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def execute(self, _):
+            return FakeResult()
+
+    with patch("app.api.endpoints.AsyncSessionLocal", return_value=FakeSession()):
         response = client.get("/api/v1/roi/history/demo_session")
         assert response.status_code == 200
         assert response.json() == [
@@ -77,5 +88,5 @@ def test_websocket_ingest_rejects_large_frame(client, monkeypatch):
 
     with client.websocket_connect("/ws/stream/ingest/oversize") as websocket:
         websocket.send_bytes(b"x" * 20)
-        with pytest.raises(WebSocketDisconnect):
-            websocket.receive()
+        message = websocket.receive()
+        assert message["type"] == "websocket.close"

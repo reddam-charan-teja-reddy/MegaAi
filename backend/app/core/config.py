@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     MODEL_PATH: str = "face_detection_short_range.tflite"
     CORS_ALLOW_ORIGINS: str = "*"
     MAX_FRAME_BYTES: int = 3_000_000
+    TESTING: bool = False
     
     # Tuning configurations
     BUFFER_FLUSH_INTERVAL: float = 2.0  # seconds between background flushes
