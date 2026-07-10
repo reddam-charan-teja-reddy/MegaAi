@@ -1,18 +1,18 @@
 services:
   db:
     image: postgres:15-alpine
-    container_name: megaai_db
+    container_name: fdss_db
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: megaai
+      POSTGRES_DB: fdss
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d megaai"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fdss"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,9 +21,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: mega_ai_backend
+    container_name: fdss_ai_backend
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/megaai
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fdss
       - WS_HOST=0.0.0.0
       - WS_PORT=8000
       - MODEL_PATH=/app/app/cv/face_detection_short_range.tflite
@@ -38,7 +38,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: mega_ai_frontend
+    container_name: fdss_ai_frontend
     ports:
       - "3000:80"
     depends_on:

@@ -840,7 +840,7 @@ wheels = [
 ]
 
 [[package]]
-name = "megaai"
+name = "fdss"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

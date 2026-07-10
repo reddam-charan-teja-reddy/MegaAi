@@ -1,8 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Mega AI"
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/megaai"
+    PROJECT_NAME: str = "FDSS"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/FDSS"
     WS_HOST: str = "0.0.0.0"
     WS_PORT: int = 8000
     MODEL_PATH: str = "face_detection_short_range.tflite"

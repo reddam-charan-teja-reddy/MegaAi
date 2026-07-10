@@ -1,14 +1,14 @@
-import { useState } from 'react'
-import './App.css'
-import Feeder from './components/feeder/Feeder'
-import Viewer from './components/Viewer'
+import { useState } from "react";
+import "./App.css";
+import Feeder from "./components/feeder/Feeder";
+import Viewer from "./components/Viewer";
 
 function App() {
   const [sessionId] = useState(`session_${Math.floor(Math.random() * 10000)}`);
 
   return (
     <div className="app-container">
-      <h1 className="app-title">Mega AI Face Stream</h1>
+      <h1 className="app-title">FDSS</h1>
 
       <div className="app-grid">
         <section className="feeder-section">
@@ -20,7 +20,7 @@ function App() {
         </section>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
