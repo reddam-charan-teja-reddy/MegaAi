@@ -1,4 +1,4 @@
-# Mega AI
+# Face Detection Streaming System
 
 Real-time face detection video streaming system using FastAPI, MediaPipe, PostgreSQL, and a Vite React frontend.
 
@@ -130,4 +130,4 @@ bun run test
 ## AI Usage Disclosure
 
 GitHub Copilot (GPT-5.2-Codex) was used to assist with code scaffolding, test outlines, and documentation drafts.
-All generated code was reviewed and edited to match project requirements and standards.
+All generated code was reviewed and edited to match requirements and standards.
